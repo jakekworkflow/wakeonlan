@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wake-on-LAN</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    header p { color: var(--muted); font-size: 0.95rem; }
+
+    /* Add form */
+    .add-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .add-form h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.8rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .form-row input {
+      flex: 1;
+      min-width: 140px;
+      padding: 0.65rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-row input:focus {
+      border-color: var(--accent);
+    }
+
+    .form-row input::placeholder { color: var(--muted); }
+
+    .btn {
+      padding: 0.65rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    /* Computer list */
+    .computer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .computer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .computer-card:hover { border-color: var(--accent); }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    .status-dot.offline {
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+    }
+
+    .status-dot.checking {
+      background: var(--muted);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .computer-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .computer-info .name {
+      font-weight: 600;
+      font-size: 1.05rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .computer-info .details {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .btn-wake {
+      background: var(--accent);
+      color: #fff;
+      padding: 0.5rem 1.25rem;
+    }
+
+    .btn-wake:hover { background: var(--accent-hover); }
+
+    .btn-wake:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-delete {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+    }
+
+    .btn-delete:hover {
+      color: var(--red);
+      border-color: var(--red);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+    .empty-state p { font-size: 0.95rem; }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .form-row { flex-direction: column; }
+      .form-row input { min-width: 100%; }
+      .computer-card { flex-wrap: wrap; }
+      .card-actions { width: 100%; justify-content: flex-end; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>&#x1F50C; <span>Wake</span> on LAN</h1>
+      <p>Manage and wake your computers with a single click</p>
+    </header>
+
+    <div class="add-form">
+      <h2>Add Computer</h2>
+      <div class="form-row">
+        <input type="text" id="inputName" placeholder="Computer name" />
+        <input type="text" id="inputIP" placeholder="IP address (e.g. 192.168.1.50)" />
+        <input type="text" id="inputMAC" placeholder="MAC address (e.g. AA:BB:CC:DD:EE:FF)" />
+        <button class="btn btn-primary" onclick="addComputer()">Add</button>
+      </div>
+    </div>
+
+    <div class="computer-list" id="computerList">
+      <div class="empty-state">
+        <div class="icon">&#x1F4BB;</div>
+        <p>No computers added yet. Add one above to get started.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '';
+
+    async function fetchComputers() {
+      const res = await fetch(`${API}/api/computers`);
+      return res.json();
+    }
+
+    function renderList(computers) {
+      const list = document.getElementById('computerList');
+
+      if (computers.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">&#x1F4BB;</div>
+            <p>No computers added yet. Add one above to get started.</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = computers.map(c => {
+        const statusClass = c.online ? 'online' : 'offline';
+        const statusText = c.online ? 'Online' : 'Offline';
+        return `
+          <div class="computer-card" data-id="${c.id}">
+            <div class="status-dot ${statusClass}" title="${statusText}"></div>
+            <div class="computer-info">
+              <div class="name">${escapeHtml(c.name)}</div>
+              <div class="details">${escapeHtml(c.ip)} &middot; ${escapeHtml(c.mac)}</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-wake" onclick="wakeComputer(${c.id})">Wake</button>
+              <button class="btn btn-delete" onclick="deleteComputer(${c.id})" title="Remove">&#x2715;</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function addComputer() {
+      const name = document.getElementById('inputName').value.trim();
+      const ip = document.getElementById('inputIP').value.trim();
+      const mac = document.getElementById('inputMAC').value.trim();
+
+      if (!name || !ip || !mac) {
+        showToast('Please fill in all fields');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/api/computers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, ip, mac }),
+        });
+        if (res.ok) {
+          document.getElementById('inputName').value = '';
+          document.getElementById('inputIP').value = '';
+          document.getElementById('inputMAC').value = '';
+          loadComputers();
+          showToast('Computer added');
+        }
+      } catch (e) {
+        showToast('Failed to add computer');
+      }
+    }
+
+    async function deleteComputer(id) {
+      try {
+        await fetch(`${API}/api/computers/${id}`, { method: 'DELETE' });
+        loadComputers();
+        showToast('Computer removed');
+      } catch (e) {
+        showToast('Failed to delete');
+      }
+    }
+
+    async function wakeComputer(id) {
+      const btn = document.querySelector(`.computer-card[data-id="${id}"] .btn-wake`);
+      if (!btn) return;
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch(`${API}/api/wake/${id}`, { method: 'POST' });
+        if (res.ok) {
+          showToast('Wake packet sent!');
+          setTimeout(loadComputers, 5000);
+        } else {
+          showToast('Failed to send wake packet');
+        }
+      } catch (e) {
+        showToast('Network error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Wake';
+    }
+
+    async function loadComputers() {
+      const computers = await fetchComputers();
+      renderList(computers);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // Load on page load and refresh status every 15 seconds
+    loadComputers();
+    setInterval(loadComputers, 15000);
+
+    // Allow Enter key to submit
+    document.querySelectorAll('.add-form input').forEach(input => {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') addComputer();
+      });
+    });
+  </script>
+</body>
+</html>
