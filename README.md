@@ -125,3 +125,4 @@ For WoL to work on the target machine:
 4. **Same network** — the WoL packet must reach the target machine's network segment.
 # wakeonlan
 # wakeonlan
+# wakeonlan
